@@ -12,7 +12,6 @@
  */
 
 import java.util.Hashtable;
-import java.util.Random;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.BufferedReader;
@@ -100,10 +99,12 @@ public class HoeffdingTree {
 		return this.attribute;
 	}
 	
+	/*
 	public int getNumPts()
 	{
 		return this.pts_read;
-	}
+	} 
+	*/
 	
 	public boolean exceedHoeffingBound()
 	{
@@ -233,6 +234,7 @@ public class HoeffdingTree {
 		int y_cl = pts_read - n_cl;
 		nsplit_ent = binaryEntropyCal(y_cl,n_cl);
 		
+		
 		for(int i=0; i<attr_set.length; i++)
 		{
 			if(!attr_set[i])	//this attribute not used in path from root to this node
@@ -313,24 +315,24 @@ public class HoeffdingTree {
 	public void streamInputFile(String filename)
 	{
 		try 	//read input file
-    	{	
+    		{	
 			File file = new File(filename);
-    		FileInputStream fis = new FileInputStream(file);
-    		BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+    			FileInputStream fis = new FileInputStream(file);
+    			BufferedReader br = new BufferedReader(new InputStreamReader(fis));
     		
-            String line = null;
+            		String line = null;
             
-            while ((line = br.readLine()) != null) 
-            {
-            	String data[] = line.split(",");
-            	processTuple(data);
-            }	
-            br.close();          
-    	}
-    	catch(IOException ioe)
-    	{
-    		ioe.printStackTrace();
-    	}	
+            		while ((line = br.readLine()) != null) 
+            		{
+            			String data[] = line.split(",");
+            			processTuple(data);
+            		}	
+            		br.close();          
+    		}
+    		catch(IOException ioe)
+    		{
+    			ioe.printStackTrace();
+    		}	
 	}
 	
 	public void processTuple(String data[])
@@ -351,7 +353,30 @@ public class HoeffdingTree {
 		}
 	}
 	
+	public long statCountNodes()
+	{
+		if(children_cnt==0)
+			return 1;
+		
+		int res = 1;
+		for(int i=0; i<children_cnt; i++)
+			res += children[i].statCountNodes();
+		return res;	
+	}
+	
+	public long statCountLeaves()
+	{
+		if(children_cnt==0)
+			return 1;
+		
+		int res = 0;
+		for(int i=0; i<children_cnt; i++)
+			res += children[i].statCountLeaves();
+		return res;	
+	}
+
 	//BLB Section
+	/*
 	private static int[] fyShuffle(int[] init) {
 		Random r = new Random();
 		int maxbound = init.length;
@@ -403,11 +428,17 @@ public class HoeffdingTree {
 		
 		return true; //TODO incomplete. In progress
 	}
+	*/
 	
 	public static void main(String args[]) 
 	{
 		HoeffdingTree ht = new HoeffdingTree(0.1, 0.001, 100);	//epsilon=0.1, delta=0.1%, 100 attributes
-		ht.streamInputFile("data/0.15_0.0_38801_19401.dat");
-		System.out.println(ht.min_pts);
+		ht.streamInputFile("data/0.15_0.0_57201_28601.dat");
+		//System.out.println(ht.min_pts);
+		//for(int i=0; i<100; i++)
+		//System.out.println(i+"-"+ht.attributeEntropyCal(i, ht.pts_read));
+		//System.out.println(ht.getBestSplitAttribute());
+		//System.out.println(ht.statCountNodes());
+		//System.out.println(ht.statCountLeaves());
 	}
 }
