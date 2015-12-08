@@ -9,6 +9,10 @@
  * following the algorithm mentioned in the paper.
  * 
  * @author: Ariyam Das
+ * 
+ * Note: n_min for leaves (minimum number of points before G is computed),
+ * as mentioned in the paper, has not been implemented yet.
+ * 
  */
 
 import java.util.Hashtable;
@@ -29,23 +33,25 @@ public class HoeffdingTree {
 	private final int CODE_ATT_VAL_CNT = -2;
 	private final int CODE_ATT_VAL_CLS_CNT = -3;
 	
+	private final double USER_DEFINED_THRESHOLD = 0.05;
+	
 	private int attribute;
 	private int children_cnt;
 	private int majority_class;
 	private int majority_votes;
 	private int [] edge_label;
 	private HoeffdingTree [] children;
-	private double eps;
-	private double min_pts;
+	private double delta;
+	private double R;
 	private int pts_read;
 	private Hashtable<String,Integer> params;
 	boolean []attr_set;
 	
-	public HoeffdingTree(double epsilon, double delta, int no_attr)
+	public HoeffdingTree(double delta, int no_attr)
 	{
 		attr_set = new boolean[no_attr];	//initialized to false by default
-		this.eps = epsilon;
-		this.min_pts = -(Math.log(delta))/(2*epsilon*epsilon); //Hoeffding bound with R=1
+		this.delta = delta;
+		this.R = 1;
 		this.children_cnt = 0;
 		this.attribute = -1;
 		this.majority_class = -1;
@@ -56,11 +62,11 @@ public class HoeffdingTree {
 		this.params = new Hashtable<String,Integer>();
 	}
 	
-	public HoeffdingTree(double epsilon, double delta, double R, int no_attr)
+	public HoeffdingTree(double delta, double R, int no_attr)
 	{	
 		attr_set = new boolean[no_attr];	//initialized to false by default
-		this.eps = epsilon;
-		this.min_pts = -R*R*(Math.log(delta))/(2*epsilon*epsilon); //Hoeffding bound
+		this.delta = delta;
+		this.R = R;
 		this.children_cnt = 0;
 		this.attribute = -1;
 		this.majority_class = -1;
@@ -71,10 +77,25 @@ public class HoeffdingTree {
 		this.params = new Hashtable<String,Integer>();
 	}
 	
-	public HoeffdingTree(double epsilon, double n, boolean unsel_pool[], int maj_class)
+	public HoeffdingTree(double delta, boolean unsel_pool[], int maj_class)
 	{
-		this.eps = epsilon;
-		this.min_pts = n;
+		this.delta = delta;
+		this.R = 1;
+		this.children_cnt = 0;
+		this.attribute = -1;
+		this.majority_class = maj_class;
+		this.majority_votes = 0;
+		this.pts_read = 0;
+		this.edge_label = null;
+		this.children = null;
+		this.params = new Hashtable<String,Integer>();
+		this.attr_set = unsel_pool;
+	}
+	
+	public HoeffdingTree(double delta, double R, boolean unsel_pool[], int maj_class)
+	{
+		this.delta = delta;
+		this.R = R;
 		this.children_cnt = 0;
 		this.attribute = -1;
 		this.majority_class = maj_class;
@@ -105,14 +126,6 @@ public class HoeffdingTree {
 		return this.pts_read;
 	} 
 	*/
-	
-	public boolean exceedHoeffingBound()
-	{
-		if(pts_read>=min_pts)
-			return true;
-		else
-			return false;
-	}
 	
 	public int predictClass()
 	{
@@ -193,7 +206,8 @@ public class HoeffdingTree {
 		if(x==0 || y==0)
 			return res;
 		
-		res = -((double)x/s)*Math.log(x/s) -((double)y/s)*Math.log(y/s);
+		res = -((double)x/s)*(Math.log(x/s)/Math.log(2)) -((double)y/s)*(Math.log(y/s)/Math.log(2));
+		//res = 1 - (x/s)*(x/s) - (y/s)*(y/s);	//Gini index
 		return res;
 	}
 	
@@ -255,7 +269,11 @@ public class HoeffdingTree {
 		}
 		
 		double x = Math.min(smin_ent, nsplit_ent);
-		if(x-fmin_ent > eps)
+		//double diff = (x-fmin_ent)/(nsplit_ent - fmin_ent); //percentage points did not work
+		double diff = (x-fmin_ent); //simple difference, according to algo in paper
+		double eps = getEpsilon();
+		
+		if(diff > eps || (diff < eps && USER_DEFINED_THRESHOLD > eps))	//avoid comparing two very close attributes
 			b_attr = tmp;
 		
 		return b_attr;
@@ -289,6 +307,7 @@ public class HoeffdingTree {
 	
 	public void split(int by_attr)
 	{
+		attribute = by_attr;
 		children_cnt = MAX_ATT_VAL;
 		edge_label = new int[children_cnt];
 		children = new HoeffdingTree[children_cnt];
@@ -303,9 +322,8 @@ public class HoeffdingTree {
 			int cl = getDomClass(by_attr,i);
 			cl = ((cl != -1) ? cl : majority_class);
 			
-			children[i] = new HoeffdingTree(eps, min_pts, pool, cl);
-		}
-		
+			children[i] = new HoeffdingTree(delta, pool, cl);
+		}	
 		//clear up space
 		attr_set = null;	//gc should clear this
 		params.clear();		//cleared
@@ -315,24 +333,23 @@ public class HoeffdingTree {
 	public void streamInputFile(String filename)
 	{
 		try 	//read input file
-    		{	
+		{
 			File file = new File(filename);
-    			FileInputStream fis = new FileInputStream(file);
-    			BufferedReader br = new BufferedReader(new InputStreamReader(fis));
-    		
-            		String line = null;
+			FileInputStream fis = new FileInputStream(file);
+			BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+    		String line = null;
             
-            		while ((line = br.readLine()) != null) 
-            		{
-            			String data[] = line.split(",");
-            			processTuple(data);
-            		}	
-            		br.close();          
-    		}
-    		catch(IOException ioe)
-    		{
-    			ioe.printStackTrace();
-    		}	
+            while ((line = br.readLine()) != null) 
+            {
+            	String data[] = line.split(",");
+            	processTuple(data);
+        	}	
+            br.close();          
+    	}
+    	catch(IOException ioe)
+    	{
+    		ioe.printStackTrace();
+    	}	
 	}
 	
 	public void processTuple(String data[])
@@ -345,11 +362,12 @@ public class HoeffdingTree {
 		}
 		
 		ht.updateParams(data);
-		if(ht.exceedHoeffingBound() && !ht.isPure())
+		if(!ht.isPure())
 		{
 			int best_attr = ht.getBestSplitAttribute();
-			if(best_attr != -1)
-				ht.split(best_attr);
+			if(best_attr != -1) { 
+				ht.split(best_attr); 
+			}
 		}
 	}
 	
@@ -373,6 +391,16 @@ public class HoeffdingTree {
 		for(int i=0; i<children_cnt; i++)
 			res += children[i].statCountLeaves();
 		return res;	
+	}
+	
+	public double getEpsilon()
+	{
+		if(pts_read==0)
+			return 999999.0;
+		
+		double term = -R*R*Math.log(delta)/(2*pts_read);
+		double eps = Math.sqrt(term);
+		return eps;
 	}
 
 	//BLB Section
@@ -432,8 +460,9 @@ public class HoeffdingTree {
 	
 	public static void main(String args[]) 
 	{
-		HoeffdingTree ht = new HoeffdingTree(0.1, 0.001, 100);	//epsilon=0.1, delta=0.1%, 100 attributes
-		ht.streamInputFile("data/0.15_0.0_83377_41689.dat");
+		HoeffdingTree ht = new HoeffdingTree(Math.pow(10,-7), 100);	//delta=0.1%, 100 attributes
+		ht.streamInputFile("data/0.25_0.2_10241_5121.dat");
+		System.out.println(ht.statCountNodes());
 		//System.out.println(ht.min_pts);
 		//for(int i=0; i<100; i++)
 		//System.out.println(i+"-"+ht.attributeEntropyCal(i, ht.pts_read));
