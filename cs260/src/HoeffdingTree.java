@@ -12,6 +12,7 @@
  */
 
 import java.util.Hashtable;
+import java.util.Random;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.BufferedReader;
@@ -348,6 +349,59 @@ public class HoeffdingTree {
 			if(best_attr != -1)
 				ht.split(best_attr);
 		}
+	}
+	
+	//BLB Section
+	private static int[] fyShuffle(int[] init) {
+		Random r = new Random();
+		int maxbound = init.length;
+		for (int j=maxbound-1;j>0;j--) {
+			int k = r.nextInt(j+1);
+			int temp = init[k];
+			init[k] = init[j];
+			init[j] = temp;
+		}
+		return init;
+	}
+	
+	private static int[] multiDist(int len) {
+		int ret[] = new int[len];
+		Random rand = new Random();
+		int remain = len;
+		int ind = 0;
+		while(remain > 0) {
+			int j = rand.nextInt(remain);
+			remain-=j;
+			remain+=ret[ind%len];
+			ret[ind%len] = j;
+			ind++;
+		}
+		ret = fyShuffle(ret);
+		return ret;
+	}
+	
+	//TODO Threaded runs
+	public boolean runBLB(String[] data, int s, int b, int r) {
+		HoeffdingTree ht = this;
+		int n = data.length;
+		int[] init = new int[n];
+		for (int in=0;in<n;in++) {
+			init[in] = in;
+		}
+		int[] partition = fyShuffle(init);
+		
+		for (int j=0;j<s;j++) {
+			int qsum = 0;
+			for (int k=0;k<r;k++) {
+				int[] dist = multiDist(b);
+				for (int p=0;p<b;p++) {
+					//TODO write function to input data
+					int best_attr = ht.getBestSplitAttribute();
+				}
+			}
+		}
+		
+		return true; //TODO incomplete. In progress
 	}
 	
 	public static void main(String args[]) 
