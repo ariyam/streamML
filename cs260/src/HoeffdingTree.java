@@ -433,7 +433,7 @@ public class HoeffdingTree {
 	public static void main(String args[]) 
 	{
 		HoeffdingTree ht = new HoeffdingTree(0.1, 0.001, 100);	//epsilon=0.1, delta=0.1%, 100 attributes
-		ht.streamInputFile("data/0.15_0.0_57201_28601.dat");
+		ht.streamInputFile("data/0.15_0.0_83377_41689.dat");
 		//System.out.println(ht.min_pts);
 		//for(int i=0; i<100; i++)
 		//System.out.println(i+"-"+ht.attributeEntropyCal(i, ht.pts_read));
