@@ -132,6 +132,19 @@ public class HoeffdingTree {
 		return this.majority_class;
 	}
 	
+	public int predictClass(String tuple[])
+	{
+		HoeffdingTree ht = this;
+		while(!ht.isLeaf())
+		{
+			int a_no = ht.getAttribute();
+			int e_val = Integer.parseInt(tuple[a_no]);
+			ht = ht.getChild(e_val);
+		}
+
+		return ht.predictClass();
+	}
+	
 	public void updateClass(int cl)
 	{
 		if(majority_votes>0) 
@@ -371,6 +384,51 @@ public class HoeffdingTree {
 		}
 	}
 	
+	public void streamInputFile(String filename, int train_size, int test_size)
+	{
+		try 	//read input file
+		{
+			File file = new File(filename);
+			FileInputStream fis = new FileInputStream(file);
+			BufferedReader br = new BufferedReader(new InputStreamReader(fis));
+    		String line = null;
+    		
+            int tr = 0, te = 0, corr = 0, no_of_eg=0;          
+            while ((line = br.readLine()) != null) 
+            {
+            	String data[] = line.split(",");
+            	if(tr<train_size)
+            	{
+            		tr++;
+            		processTuple(data);
+            	}
+            	else
+            	{
+            		te++;
+            		int orig_cl = Integer.parseInt(data[data.length-1]);
+            		int pred_cl = predictClass(data);
+            		if(orig_cl == pred_cl)
+            			corr++;
+            		
+            		if(te==test_size)
+            		{
+            			no_of_eg+=tr;
+            			System.out.println(no_of_eg+","+(double)corr/te);
+            			
+            			tr=0;	//all set back to zero
+            			te=0;
+            			corr=0;
+            		}
+            	}
+        	}	
+            br.close();          
+    	}
+    	catch(IOException ioe)
+    	{
+    		ioe.printStackTrace();
+    	}	
+	}
+	
 	public long statCountNodes()
 	{
 		if(children_cnt==0)
@@ -461,8 +519,9 @@ public class HoeffdingTree {
 	public static void main(String args[]) 
 	{
 		HoeffdingTree ht = new HoeffdingTree(Math.pow(10,-7), 100);	//delta=0.1%, 100 attributes
-		ht.streamInputFile("data/0.25_0.2_10241_5121.dat");
-		System.out.println(ht.statCountNodes());
+		//ht.streamInputFile("data/0.25_0.2_10241_5121.dat");
+		ht.streamInputFile("data/0.15_0.0_70127_35064.dat",100000,10000);
+		//System.out.println(ht.statCountNodes());
 		//System.out.println(ht.min_pts);
 		//for(int i=0; i<100; i++)
 		//System.out.println(i+"-"+ht.attributeEntropyCal(i, ht.pts_read));

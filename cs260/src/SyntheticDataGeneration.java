@@ -98,6 +98,6 @@ public class SyntheticDataGeneration {
 	public static void main(String args[]) 
 	{
 		//<f, noise level, #points>
-		new SyntheticDataGeneration(0.25,0.20,1000000);
+		new SyntheticDataGeneration(0.15,0.0,3000000);
 	}
 }
