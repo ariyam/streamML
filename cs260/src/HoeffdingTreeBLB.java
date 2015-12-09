@@ -358,7 +358,10 @@ public class HoeffdingTreeBLB {
 		
 		double ret_vector[] = new double[dataset.get(0).length];
 		for(int i=0; i<ret_vector.length-1; i++)
-			ret_vector[i] = attributeEntropyCal(params, i,dataset.size());
+			if(!attr_set[i])
+				ret_vector[i] = attributeEntropyCal(params, i,dataset.size());
+			else
+				ret_vector[i] = 100;
 		
 		String cl_code = CODE_CLS_CNT+":"+0;
 		int n_cl = ((params.containsKey(cl_code)) ? params.get(cl_code) : 0);
@@ -401,7 +404,49 @@ public class HoeffdingTreeBLB {
 		}
 		res/=cnt;
 		return res;
-	}	
+	}
+	
+	//For now, will work for binary classes and binary attributes only
+	public int getBestSplitAttribute(double[] ent_vector, int nval)
+	{
+		int b_attr = -1;
+			
+		//highest inf. gain means lowest entropy
+		double fmin_ent = 100; //1st minimum entropy
+		double smin_ent = 100; //2nd minimum entropy
+		int tmp=-1;
+			
+		double nsplit_ent = ent_vector[ent_vector.length-1]; //entropy for no split
+
+		for(int i=0; i<attr_set.length; i++)
+		{
+			if(!attr_set[i])	//this attribute not used in path from root to this node
+			{
+				double x = ent_vector[i];
+				if(x<fmin_ent)
+				{
+					smin_ent = fmin_ent;
+					fmin_ent = x;
+					tmp = i;
+				}
+				else
+				{
+					if(x<smin_ent)
+						smin_ent = x;
+				}
+			}
+		}
+			
+		double x = Math.min(smin_ent, nsplit_ent);
+		//double diff = (x-fmin_ent)/(nsplit_ent - fmin_ent); //percentage points did not work
+		double diff = (x-fmin_ent); //simple difference, according to algo in paper
+		double eps = getEpsilon(nval);
+			
+			if(diff > eps || (diff < eps && USER_DEFINED_THRESHOLD > eps))	//avoid comparing two very close attributes
+				b_attr = tmp;
+			
+			return b_attr;
+		}
 
 	//BLB Section
 	/*
