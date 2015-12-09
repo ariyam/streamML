@@ -27,7 +27,7 @@ public class HoeffdingTreeBLB {
 	
 	//following should have been pushed into the constructor;
 	//but for sake of simplicity and all practical implementation purposes, this will do!
-	private final int MAX_CLASS = 2;	
+	//private final int MAX_CLASS = 2;	
 	private final int MAX_ATT_VAL = 2;
 	
 	private final double USER_DEFINED_THRESHOLD = 0.05;
@@ -205,8 +205,24 @@ public class HoeffdingTreeBLB {
 		ht.updateParams(data);
 		if(!ht.isPure() && ht.runBLB())
 		{
-			//run BLB
-			//what is the estimator?
+			//run BLB - ARG : all_pts arraylist
+			//what is the estimator vector? -- call the method entropyVector for each sample. 
+			//each sample is also an array list
+			//from each sample : Vector has N+1 estimators where N is the number of dimensions
+			//average all vector results
+			//avg_ent_vector
+			
+			//Test
+			double[] avg_ent_vector = entropyVector(all_pts);
+			//======================================
+			
+			
+			//bestSplittingAttr(avg_ent_vector)
+			//whether to split or not
+			int best_attr = ht.getBestSplitAttribute(avg_ent_vector,pts_read);
+			if(best_attr != -1) { 
+				ht.split(best_attr); 
+			}
 		}
 	}
 	
@@ -446,7 +462,50 @@ public class HoeffdingTreeBLB {
 				b_attr = tmp;
 			
 			return b_attr;
+	}
+	
+	public void split(int by_attr)
+	{
+		attribute = by_attr;
+		children_cnt = MAX_ATT_VAL;
+		edge_label = new int[children_cnt];
+		children = new HoeffdingTreeBLB[children_cnt];
+		
+		for(int i=0; i<children_cnt; i++)
+		{
+			edge_label[i] = i;
+			
+			boolean pool[] = attr_set.clone();
+			pool[by_attr] = true;
+			
+			int cl = getDomClass(by_attr,i);
+			cl = ((cl != -1) ? cl : majority_class);
+			
+			children[i] = new HoeffdingTreeBLB(delta, pool, cl);
+		}	
+		//clear up space
+		attr_set = null;	//gc should clear this
+		all_pts.clear();		//cleared
+		all_pts = null;		//gc will clear this now
+	}
+	
+	//will work for binary classes only for now
+	public int getDomClass(int id, int val)
+	{
+		int ncl = 0, ycl = 0;
+		for(int i=0; i<all_pts.size(); i++)
+		{
+			String data[] = all_pts.get(i);
+			if(Integer.parseInt(data[id])==val)
+			{
+				if(Integer.parseInt(data[data.length-1])==0)
+					ncl++;
+				else
+					ycl++;
+			}
 		}
+		return ((ncl>ycl)?0:1);
+	}
 
 	//BLB Section
 	/*
