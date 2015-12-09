@@ -171,7 +171,7 @@ public class HoeffdingTreeBLB {
 	}
 	
 	public boolean runBLB()
-	{
+	{ 
 		if (reboot_pts == REBOOT_CUT)
 		{
 			reboot_pts = 0;
@@ -188,7 +188,7 @@ public class HoeffdingTreeBLB {
 		int cl = Integer.parseInt(data[cols]);
 		updateClass(cl);
 		
-		reboot_pts++;
+		reboot_pts++; 
 		
 		all_pts.add(data);		
 	}
@@ -202,9 +202,9 @@ public class HoeffdingTreeBLB {
 			ht = ht.getChild(Integer.parseInt(data[dim_no]));
 		}
 		
-		ht.updateParams(data);
-		if(!ht.isPure() && ht.runBLB())
-		{
+		ht.updateParams(data); 
+		if(ht.runBLB() && !ht.isPure())
+		{	
 			//run BLB - ARG : all_pts arraylist
 			//what is the estimator vector? -- call the method entropyVector for each sample. 
 			//each sample is also an array list
@@ -212,17 +212,15 @@ public class HoeffdingTreeBLB {
 			//average all vector results
 			//avg_ent_vector
 			
-			//Test
-			double[] avg_ent_vector = entropyVector(all_pts);
+			//Test, exactly same as HoeffdingTree (without BLB)
+			double[] avg_ent_vector = ht.entropyVector(ht.all_pts);
 			//======================================
-			
 			
 			//bestSplittingAttr(avg_ent_vector)
 			//whether to split or not
-			int best_attr = ht.getBestSplitAttribute(avg_ent_vector,pts_read);
-			if(best_attr != -1) { 
+			int best_attr = ht.getBestSplitAttribute(avg_ent_vector,ht.pts_read);
+			if(best_attr != -1) 
 				ht.split(best_attr); 
-			}
 		}
 	}
 	
@@ -458,10 +456,10 @@ public class HoeffdingTreeBLB {
 		double diff = (x-fmin_ent); //simple difference, according to algo in paper
 		double eps = getEpsilon(nval);
 			
-			if(diff > eps || (diff < eps && USER_DEFINED_THRESHOLD > eps))	//avoid comparing two very close attributes
-				b_attr = tmp;
-			
-			return b_attr;
+		if(diff > eps || (diff < eps && USER_DEFINED_THRESHOLD > eps))	//avoid comparing two very close attributes
+			b_attr = tmp;
+		
+		return b_attr;
 	}
 	
 	public void split(int by_attr)
@@ -485,7 +483,7 @@ public class HoeffdingTreeBLB {
 		}	
 		//clear up space
 		attr_set = null;	//gc should clear this
-		all_pts.clear();		//cleared
+		all_pts.clear();	//cleared
 		all_pts = null;		//gc will clear this now
 	}
 	
@@ -564,9 +562,9 @@ public class HoeffdingTreeBLB {
 	
 	public static void main(String args[]) 
 	{
-		HoeffdingTreeBLB ht = new HoeffdingTreeBLB(Math.pow(10,-7), 100);	//delta=0.1%, 100 attributes
+		HoeffdingTreeBLB ht = new HoeffdingTreeBLB(Math.pow(10,-2), 100);	//delta=0.1%, 100 attributes
 		//ht.streamInputFile("data/0.25_0.2_10241_5121.dat");
-		ht.streamInputFile("data/0.15_0.0_70127_35064.dat",100000,10000);
+		ht.streamInputFile("data/0.15_0.0_57183_28592.dat",1000,100);
 		//System.out.println(ht.statCountNodes());
 		//System.out.println(ht.min_pts);
 		//for(int i=0; i<100; i++)

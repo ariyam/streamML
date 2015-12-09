@@ -279,6 +279,7 @@ public class HoeffdingTree {
 						smin_ent = x;
 				}
 			}
+			
 		}
 		
 		double x = Math.min(smin_ent, nsplit_ent);
@@ -378,9 +379,8 @@ public class HoeffdingTree {
 		if(!ht.isPure())
 		{
 			int best_attr = ht.getBestSplitAttribute();
-			if(best_attr != -1) { 
+			if(best_attr != -1) 
 				ht.split(best_attr); 
-			}
 		}
 	}
 	
@@ -518,9 +518,9 @@ public class HoeffdingTree {
 	
 	public static void main(String args[]) 
 	{
-		HoeffdingTree ht = new HoeffdingTree(Math.pow(10,-7), 100);	//delta=0.1%, 100 attributes
+		HoeffdingTree ht = new HoeffdingTree(Math.pow(10,-2), 100);	//delta=0.1%, 100 attributes
 		//ht.streamInputFile("data/0.25_0.2_10241_5121.dat");
-		ht.streamInputFile("data/0.15_0.0_70127_35064.dat",100000,10000);
+		ht.streamInputFile("data/0.15_0.0_57183_28592.dat",1000,100);
 		//System.out.println(ht.statCountNodes());
 		//System.out.println(ht.min_pts);
 		//for(int i=0; i<100; i++)
