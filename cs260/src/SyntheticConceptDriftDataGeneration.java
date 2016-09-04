@@ -48,7 +48,7 @@ public class SyntheticConceptDriftDataGeneration {
 		this.drifting_attributes = drft_level;	
 		this.noise = n;		
 		output_filename = "data/d-"+dims+"_n-"+noise+"_pts-"+total_pts+"_at-"+drift_at+"_dr-"+drifting_attributes+".dat";		
-		generateDataFile(drifting_attributes);		//stored according to the output filename
+		generateDataFile(drifting_attributes);		
 	}
 		
 	public String generateRandomTrainingInstance()
@@ -72,11 +72,12 @@ public class SyntheticConceptDriftDataGeneration {
 		return string;	
 	}
 	
+	//Concept drift based data generated based on one hyper-plane parameter, w1.
 	public void generateDataFile()
 	{
 		try 
     	{
-			BufferedWriter out = new BufferedWriter(new FileWriter(output_filename,true));
+			BufferedWriter out = new BufferedWriter(new FileWriter(output_filename,false));
 			
 			//No concept drift for the first set .....
 			for(int x=0; x<drift_at; x++)
@@ -86,15 +87,20 @@ public class SyntheticConceptDriftDataGeneration {
 			}
 			
 			//Now the concept drift begins .....
+			double delta = 0.01*dims*1;
+			int flip_at=5;
 			for(int x=drift_at; x<total_pts; x+=drift_at)
 			{
-				//concept drift - code
-				double delta = 0.01*dims*1;			//from section 4 in paper
+				double val = target.getHyperplaneWt(0);
+
+				if((x/drift_at)%flip_at == 0)
+					delta *= -1;			
 				
-				if ((x/drift_at)%2 == 1)		//keep alternating between two weights for w1
-					target.updateHyperplaneWt(0, delta);	//updated the weight
-				else
-					target.updateHyperplaneWt(0, -delta);	//revert back
+				if(val+delta<0 || val+delta > 0.25*dims)
+					delta *= -1;
+				
+				target.updateHyperplaneWt(0, delta);		//adding concept drift
+				System.out.println("Drifted w1: "+ target.getHyperplaneWt(0));
 				
 				for(int y=0; y<drift_at; y++)
 				{
@@ -110,6 +116,7 @@ public class SyntheticConceptDriftDataGeneration {
     	}
 	}
 	
+	//Concept drift data generated based on D randomly chosen hyper-plane parameters.
 	public void generateDataFile(int D)
 	{
 		try 
@@ -124,18 +131,27 @@ public class SyntheticConceptDriftDataGeneration {
 			}
 			
 			//Now the concept drift begins .....
+			double delta [] = new double[dims]; 
+			for(int i=0; i<dims; i++)
+				delta[i] = 0.01*dims*1;
+			
 			for(int x=drift_at; x<total_pts; x+=drift_at)
 			{
-				//concept drift - code
-				double delta = 0.01*dims*1;			//from section 4 in paper
-				
-				if ((x/drift_at)%2 == 1)		//keep alternating between two weights for w1
-					{target.updateHyperplaneWt(0, delta);	//updated the weight
-					System.out.println(target.getHyperplaneWt(0));}
-				else
-					{target.updateHyperplaneWt(0, -delta);	//revert back
-					System.out.println(target.getHyperplaneWt(0));}
+				int param[] = randomGenerate(D);	//randomly chosen D hyper-plane parameters
+				for(int i=0; i<D; i++)
+				{
+					double val = target.getHyperplaneWt(param[i]);
+
+					Random rand = new Random();
+					if(rand.nextInt(4)==0)
+						delta[param[i]] *= -1;	//25% chance of sign flip
 					
+					if(val+delta[param[i]] < 0 || val+delta[param[i]] > 0.25*dims)
+						delta[param[i]] *= -1;
+					
+					target.updateHyperplaneWt(param[i], delta[param[i]]);	//adding concept drift	
+					System.out.println("Drifted w"+param[i]+": "+ target.getHyperplaneWt(param[i]));
+				}
 				
 				for(int y=0; y<drift_at; y++)
 				{
@@ -151,10 +167,28 @@ public class SyntheticConceptDriftDataGeneration {
     	}
 	}
 	
+	public int [] randomGenerate(int D)
+	{
+		int vals [] = new int[D];
+		int nums [] = new int[dims];
+		for(int i=0; i<dims; i++)
+			nums[i]=i;
+		Random rand = new Random();
+		for(int i=0; i<D; i++)
+		{
+			int x = rand.nextInt(dims-i);
+			vals[i] = nums[x];	//the random value
+			nums[x] = nums[dims-i-1];	//bring in the last value
+		}
+		return vals;
+	}
 	
 	public static void main(String args[]) 
 	{
 		//<#dims, #total points, #drift at every this many points, #noise level>
-		new SyntheticConceptDriftDataGeneration(25, 500000, 5000, 1, 0.1);
+		new SyntheticConceptDriftDataGeneration(25, 500000, 5000, 0.1);
+		
+		//<#dims, #total points, #drifting points, #drifting attributes, #noise level>
+		//new SyntheticConceptDriftDataGeneration(25, 500000, 5000, 5, 0.1);
 	}
 }
